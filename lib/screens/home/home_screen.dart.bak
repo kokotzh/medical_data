@@ -1,0 +1,108 @@
+import 'package:flutter/material.dart';
+import 'package:medical_data/models/medicines.dart';
+import 'package:medical_data/services/med_service.dart';
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  var medicalService = MedicalService();
+  late List<Medicines> medlist;
+
+  Future<void> refreshData() async {
+    return medicalService.getMedicines().then((value) {
+      setState(() {
+        medlist = value;
+      });
+    });
+  }
+
+  @override
+  void initState() {
+    medicalService.getMedicines();
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Medical Data'),
+      ),
+      body: RefreshIndicator(
+        onRefresh: refreshData,
+        child: FutureBuilder<List<Medicines>>(
+          future: medicalService.getMedicines(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return const Center(
+                child: Text('An error has occurred!'),
+              );
+            } else if (snapshot.hasData) {
+              return MedicinesList(medicines: snapshot.data!);
+            } else {
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
+            }
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class MedicinesList extends StatelessWidget {
+  const MedicinesList({super.key, required this.medicines});
+
+  final List<Medicines> medicines;
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.builder(
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+      ),
+      itemCount: medicines.length,
+      itemBuilder: (context, index) {
+        return Card(
+          elevation: 0,
+          color: Theme.of(context).colorScheme.surfaceVariant,
+          child: SizedBox(
+            width: 300,
+            height: 100,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.all(Radius.circular(10.0)),
+                  child: Image.network(
+                    medicines[index].attributes.img,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      return loadingProgress == null
+                          ? child
+                          : const CircularProgressIndicator();
+                    },
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                Positioned(
+                  left: 5,
+                  bottom: 0,
+                  child: Text(
+                    medicines[index].attributes.name,
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
